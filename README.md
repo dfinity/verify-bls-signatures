@@ -1,7 +1,7 @@
 BLS signature utility crate
 =============================
 
-This is a simple Rust crate which can be used to sign and verify BLS signatures
+This is a simple Rust crate which can be used to create and verify BLS signatures
 over the BLS12-381 curve. This follows the
 [IETF draft for BLS signatures](https://datatracker.ietf.org/doc/draft-irtf-cfrg-bls-signature/),
 using the "short signature" variation, where signatures are in G1 and

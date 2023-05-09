@@ -1,7 +1,5 @@
-use bls12_381::{G2Affine, Scalar};
-use ic_verify_bls_signature::{sign_message_with_bls, verify_bls_signature};
-use pairing::group::Curve;
-use rand::{Rng, RngCore};
+use ic_verify_bls_signature::*;
+use rand::Rng;
 
 fn test_bls_signature(
     expected_result: bool,
@@ -70,39 +68,20 @@ fn reject_invalid_key() {
         "814c0e6ec71fab583b08bd81373c255c3c371b2e84863c98a4f1e08b74235d14fb5d9c0cd546d9685f913a0c0b2cc5341583bf4b4392e467db96d65b9bb4cb717112f8472e0d5a4d14505ffd7484b01291091c5f87b98883463f98091a0baaad");
 }
 
-fn random_scalar() -> Scalar {
-    let mut rng = rand::thread_rng();
-    loop {
-        let mut buf = [0u8; 32];
-        rng.fill_bytes(&mut buf);
-
-        let s: Option<Scalar> = Scalar::from_bytes(&buf).into();
-
-        if let Some(s) = s {
-            return s;
-        }
-    }
-}
-
 #[test]
 fn accepts_generated_signatures() {
     let mut rng = rand::thread_rng();
 
     for _trial in 0..30 {
-        let secret_key = random_scalar();
-
-        let public_key = G2Affine::generator() * &secret_key;
-
-        let pk = public_key.to_affine().to_compressed();
-
-        let mut secret_key = secret_key.to_bytes();
-        secret_key.reverse(); // bls12_381 crate uses little endian
-
+        let sk = PrivateKey::random();
+        let pk = sk.public_key();
         let msg = rng.gen::<[u8; 24]>();
+        let sig = sk.sign(&msg);
+        assert!(verify_bls_signature(&sig.serialize(), &msg, &pk.serialize()).is_ok());
 
-        let sig = sign_message_with_bls(&msg, &secret_key).unwrap();
-
-        assert!(verify_bls_signature(&sig, &msg, &pk).is_ok());
+        assert_eq!(sig, Signature::deserialize(&sig.serialize()).unwrap());
+        assert_eq!(sk, PrivateKey::deserialize(&sk.serialize()).unwrap());
+        assert_eq!(pk, PublicKey::deserialize(&pk.serialize()).unwrap());
     }
 }
 
@@ -121,12 +100,13 @@ fn accepts_known_good_signature() {
 fn generates_expected_signature() {
     // Generated using the threshold signature implementation in IC repo
 
-    let secret_key = hex::decode("6f3977f6051e184b2c412daa1b5c0115ef7ab347cac8d808ffa2c26bd0658243").unwrap();
+    let secret_key =
+        hex::decode("6f3977f6051e184b2c412daa1b5c0115ef7ab347cac8d808ffa2c26bd0658243").unwrap();
     let message = hex::decode("50484522ad8aede64ec7f86b9273b7ed3940481acf93cdd40a2b77f2be2734a14012b2492b6363b12adaeaf055c573e4611b085d2e0fe2153d72453a95eaebf350ac3ba6a26ba0bc79f4c0bf5664dfdf5865f69f7fc6b58ba7d068e8").unwrap();
     let expected_signature = "8f7ad830632657f7b3eae17fd4c3d9ff5c13365eea8d33fd0a1a6d8fbebc5152e066bb0ad61ab64e8a8541c8e3f96de9";
 
-    let generated_sig = sign_message_with_bls(&message, &secret_key.try_into().expect("Bad size for BLS secret key")).unwrap();
+    let sk = PrivateKey::deserialize(&secret_key).unwrap();
+    let generated_sig = sk.sign(&message);
 
-    assert_eq!(hex::encode(&generated_sig), expected_signature);
-
+    assert_eq!(hex::encode(generated_sig.serialize()), expected_signature);
 }
