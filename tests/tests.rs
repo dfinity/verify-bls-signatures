@@ -1,5 +1,4 @@
 use ic_verify_bls_signature::*;
-use rand::Rng;
 
 fn test_bls_signature(
     expected_result: bool,
@@ -70,10 +69,25 @@ fn reject_invalid_key() {
 
 #[test]
 fn accepts_generated_signatures() {
-    let mut rng = rand::thread_rng();
+    use rand::{Rng, SeedableRng};
+
+    fn random_key<R: Rng>(rng: &mut R) -> PrivateKey {
+        let mut bytes = [0u8; 32];
+
+        loop {
+            rng.fill_bytes(&mut bytes);
+
+            if let Ok(k) = PrivateKey::deserialize(&bytes) {
+                return k;
+            }
+        }
+    }
+
+    let ctr = 0;
+    let mut rng = rand::rngs::SmallRng::seed_from_u64(ctr);
 
     for _trial in 0..30 {
-        let sk = PrivateKey::random();
+        let sk = random_key(&mut rng);
         let pk = sk.public_key();
         let msg = rng.gen::<[u8; 24]>();
         let sig = sk.sign(&msg);
