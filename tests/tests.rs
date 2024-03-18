@@ -69,25 +69,12 @@ fn reject_invalid_key() {
 
 #[test]
 fn accepts_generated_signatures() {
-    use rand::{Rng, SeedableRng};
+    use rand::Rng;
 
-    fn random_key<R: Rng>(rng: &mut R) -> PrivateKey {
-        let mut bytes = [0u8; 32];
-
-        loop {
-            rng.fill_bytes(&mut bytes);
-
-            if let Ok(k) = PrivateKey::deserialize(&bytes) {
-                return k;
-            }
-        }
-    }
-
-    let ctr = 0;
-    let mut rng = rand::rngs::SmallRng::seed_from_u64(ctr);
+    let mut rng = rand::thread_rng();
 
     for _trial in 0..30 {
-        let sk = random_key(&mut rng);
+        let sk = PrivateKey::random(&mut rng);
         let pk = sk.public_key();
         let msg = rng.gen::<[u8; 24]>();
         let sig = sk.sign(&msg);
@@ -96,6 +83,19 @@ fn accepts_generated_signatures() {
         assert_eq!(sig, Signature::deserialize(&sig.serialize()).unwrap());
         assert_eq!(sk, PrivateKey::deserialize(&sk.serialize()).unwrap());
         assert_eq!(pk, PublicKey::deserialize(&pk.serialize()).unwrap());
+    }
+}
+
+#[test]
+fn random_keys_are_random() {
+    let mut rng = rand::thread_rng();
+
+    let mut keys = std::collections::HashSet::new();
+
+    for _trial in 0..30 {
+        let key = PrivateKey::random(&mut rng).serialize();
+
+        assert!(keys.insert(key), "Keys are not duplicated");
     }
 }
 
