@@ -1,5 +1,4 @@
 use ic_verify_bls_signature::*;
-use rand::Rng;
 
 fn test_bls_signature(
     expected_result: bool,
@@ -70,10 +69,12 @@ fn reject_invalid_key() {
 
 #[test]
 fn accepts_generated_signatures() {
+    use rand::Rng;
+
     let mut rng = rand::thread_rng();
 
     for _trial in 0..30 {
-        let sk = PrivateKey::random();
+        let sk = PrivateKey::random(&mut rng);
         let pk = sk.public_key();
         let msg = rng.gen::<[u8; 24]>();
         let sig = sk.sign(&msg);
@@ -82,6 +83,19 @@ fn accepts_generated_signatures() {
         assert_eq!(sig, Signature::deserialize(&sig.serialize()).unwrap());
         assert_eq!(sk, PrivateKey::deserialize(&sk.serialize()).unwrap());
         assert_eq!(pk, PublicKey::deserialize(&pk.serialize()).unwrap());
+    }
+}
+
+#[test]
+fn random_keys_are_random() {
+    let mut rng = rand::thread_rng();
+
+    let mut keys = std::collections::HashSet::new();
+
+    for _trial in 0..30 {
+        let key = PrivateKey::random(&mut rng).serialize();
+
+        assert!(keys.insert(key), "Keys are not duplicated");
     }
 }
 

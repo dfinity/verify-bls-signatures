@@ -9,15 +9,18 @@
 //! the Internet Computer.
 
 use core::fmt;
-use core::ops::Neg;
 
 use bls12_381::hash_to_curve::{ExpandMsgXmd, HashToCurve};
-use bls12_381::{multi_miller_loop, G1Affine, G1Projective, G2Affine, G2Prepared, Scalar};
-use pairing::group::{Curve, Group};
-use rand::RngCore;
+use bls12_381::{G1Affine, G1Projective, G2Affine, Scalar};
+use pairing::group::Curve;
+use rand::{CryptoRng, RngCore};
 
+#[cfg(feature = "alloc")]
+use core::ops::Neg;
+
+#[cfg(feature = "alloc")]
 lazy_static::lazy_static! {
-    static ref G2PREPARED_NEG_G : G2Prepared = G2Affine::generator().neg().into();
+    static ref G2PREPARED_NEG_G : bls12_381::G2Prepared = G2Affine::generator().neg().into();
 }
 
 const BLS_SIGNATURE_DOMAIN_SEP: [u8; 43] = *b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_NUL_";
@@ -32,10 +35,12 @@ fn hash_to_g1(msg: &[u8]) -> G1Affine {
 
 /// A BLS12-381 public key usable for signature verification
 #[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(not(feature = "alloc"), derive(Debug))]
 pub struct PublicKey {
     pk: G2Affine,
 }
 
+#[cfg(feature = "alloc")]
 impl fmt::Debug for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "PublicKey({})", hex::encode(self.serialize()))
@@ -84,18 +89,40 @@ impl PublicKey {
     /// Verify a BLS signature
     pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), ()> {
         let msg = hash_to_g1(message);
-        let g2_gen: &G2Prepared = &G2PREPARED_NEG_G;
-        let pk = G2Prepared::from(self.pk);
 
-        let sig_g2 = (&signature.sig, g2_gen);
-        let msg_pk = (&msg, &pk);
+        #[cfg(feature = "alloc")]
+        {
+            use bls12_381::{multi_miller_loop, G2Prepared};
+            use pairing::group::Group;
 
-        let x = multi_miller_loop(&[sig_g2, msg_pk]).final_exponentiation();
+            let g2_gen: &G2Prepared = &G2PREPARED_NEG_G;
+            let pk = G2Prepared::from(self.pk);
 
-        if bool::from(x.is_identity()) {
-            Ok(())
-        } else {
-            Err(())
+            let sig_g2 = (&signature.sig, g2_gen);
+            let msg_pk = (&msg, &pk);
+
+            let x = multi_miller_loop(&[sig_g2, msg_pk]).final_exponentiation();
+
+            if bool::from(x.is_identity()) {
+                Ok(())
+            } else {
+                Err(())
+            }
+        }
+
+        #[cfg(not(feature = "alloc"))]
+        {
+            use bls12_381::pairing;
+
+            let g2 = G2Affine::generator();
+            let lhs = pairing(&signature.sig, &g2);
+            let rhs = pairing(&msg, &self.pk);
+
+            if lhs == rhs {
+                Ok(())
+            } else {
+                Err(())
+            }
         }
     }
 }
@@ -111,10 +138,12 @@ pub enum InvalidSignature {
 
 /// A type expressing a BLS12-381 signature
 #[derive(Copy, Clone, Eq, PartialEq)]
+#[cfg_attr(not(feature = "alloc"), derive(Debug))]
 pub struct Signature {
     sig: G1Affine,
 }
 
+#[cfg(feature = "alloc")]
 impl fmt::Debug for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Signature({})", hex::encode(self.serialize()))
@@ -181,10 +210,8 @@ impl PrivateKey {
         Self { sk }
     }
 
-    /// Create a new random secret key
-    pub fn random() -> Self {
-        let mut rng = rand::thread_rng();
-
+    /// Create a new random secret key using specified RNG
+    pub fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
         loop {
             let mut buf = [0u8; 32];
             rng.fill_bytes(&mut buf);
