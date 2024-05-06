@@ -1,5 +1,5 @@
 
-# 0.3 - Not Yet Released
+# 0.3 - 2024-05-06
 
 * Add `alloc` feature to support no-alloc environments.
 * Switch to using `ic_bls12_381` to take advantage of reduced stack
