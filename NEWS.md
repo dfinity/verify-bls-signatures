@@ -1,4 +1,9 @@
 
+# 0.4 - 2024-07-17
+
+* Bump `sha2` dependency to 0.10
+* Bump `ic_bls12_381` dependency to 0.10
+
 # 0.3 - 2024-05-06
 
 * Add `alloc` feature to support no-alloc environments.
