@@ -1,8 +1,12 @@
 
+# 0.5 - 2024-07-17
+
+* Bump `ic_bls12_381` dependency to 0.10
+
 # 0.4 - 2024-07-17
 
+* Yanked
 * Bump `sha2` dependency to 0.10
-* Bump `ic_bls12_381` dependency to 0.10
 
 # 0.3 - 2024-05-06
 
