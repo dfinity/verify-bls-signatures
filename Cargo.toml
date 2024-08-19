@@ -1,6 +1,6 @@
 [package]
 name = "ic-verify-bls-signature"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "A library for handling BLS signatures"
@@ -9,13 +9,14 @@ description = "A library for handling BLS signatures"
 bls12_381 = { version = "0.10", default-features = false, features = ["groups", "pairings", "experimental"], package = "ic_bls12_381" }
 pairing = "0.23"
 sha2 = { version = "0.10", default-features = false }
-rand = { version = "0.8", default-features = false }
+rand = { version = "0.8", default-features = false, optional = true }
 
 lazy_static = { version = "1", optional = true }
 hex = { version = "0.4", optional = true, default-features = false }
 
 [features]
-default = ["alloc"]
+default = ["alloc", "rand"]
+rand = ["dep:rand"]
 alloc = ["bls12_381/alloc", "lazy_static", "hex/alloc"]
 
 [dev-dependencies]

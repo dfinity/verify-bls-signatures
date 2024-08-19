@@ -13,7 +13,6 @@ use core::fmt;
 use bls12_381::hash_to_curve::{ExpandMsgXmd, HashToCurve};
 use bls12_381::{G1Affine, G1Projective, G2Affine, Scalar};
 use pairing::group::Curve;
-use rand::{CryptoRng, RngCore};
 
 #[cfg(feature = "alloc")]
 use core::ops::Neg;
@@ -211,7 +210,8 @@ impl PrivateKey {
     }
 
     /// Create a new random secret key using specified RNG
-    pub fn random<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
+    #[cfg(feature = "rand")]
+    pub fn random<R: rand::RngCore + rand::CryptoRng>(rng: &mut R) -> Self {
         loop {
             let mut buf = [0u8; 32];
             rng.fill_bytes(&mut buf);
