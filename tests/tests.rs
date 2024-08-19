@@ -68,6 +68,7 @@ fn reject_invalid_key() {
 }
 
 #[test]
+#[cfg(feature = "rand")]
 fn accepts_generated_signatures() {
     use rand::Rng;
 
@@ -87,6 +88,7 @@ fn accepts_generated_signatures() {
 }
 
 #[test]
+#[cfg(feature = "rand")]
 fn random_keys_are_random() {
     let mut rng = rand::thread_rng();
 

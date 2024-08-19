@@ -1,4 +1,8 @@
 
+# 0.6 - 2024-08-09
+
+* Gate use of `rand` behind feature "rand"
+
 # 0.5 - 2024-07-17
 
 * Bump `ic_bls12_381` dependency to 0.10
