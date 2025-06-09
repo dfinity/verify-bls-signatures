@@ -87,6 +87,10 @@ impl PublicKey {
 
     /// Verify a BLS signature
     pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), ()> {
+        if self.pk.is_identity().into() {
+            return Err(());
+        }
+
         let msg = hash_to_g1(message);
 
         #[cfg(feature = "alloc")]
